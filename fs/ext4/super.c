@@ -1739,6 +1739,14 @@ static int parse_options(char *options, struct super_block *sb,
 			return 0;
 		}
 	}
+	} else {
+		if (sbi->s_jquota_fmt) {
+			ext4_msg(sb, KERN_ERR, "journaled quota format "
+					"specified with no journaling "
+					"enabled");
+			return 0;
+		}
+	}
 #endif
 	if (test_opt(sb, DIOREAD_NOLOCK)) {
 		int blocksize =
@@ -3082,82 +3090,6 @@ static void ext4_destroy_lazyinit_thread(void)
 
 	kthread_stop(ext4_lazyinit_task);
 }
-void print_block_data(struct super_block *sb, sector_t blocknr
-						, unsigned char *data_to_dump, int start, int len)
-{
-	int i, j;
-	int bh_offset = (start / 16) * 16;
-	char row_data[17] = { 0, };
-	char row_hex[50] = { 0, };
-	char ch;
-	struct mount *mnt = NULL;
-
-	printk(KERN_ERR "As EXT4-fs error, printing data in hex\n");
-	printk(KERN_ERR " [partition info] s_id : %s, start sector# : %llu\n"
-			, sb->s_id, sb->s_bdev->bd_part->start_sect);
-	printk(KERN_ERR " dump block# : %llu, start offset(byte) : %d\n"
-			, blocknr, start);
-	printk(KERN_ERR " length(byte) : %d, data_to_dump 0x%p\n"
-			, len, (void *)data_to_dump);
-	if (!list_empty(&sb->s_mounts)) {
-		mnt = list_first_entry(&sb->s_mounts, struct mount, mnt_instance);
-		if (mnt)
-			printk(KERN_ERR " mountpoint : %s\n"
-					, mnt->mnt_mountpoint->d_name.name);
-	}
-	printk(KERN_ERR "-------------------------------------------------\n");
-
-	for (i = 0; i < (len + 15) / 16; i++) {
-		for (j = 0; j < 16; j++) {
-			ch = *(data_to_dump + bh_offset + j);
-			if (start <= bh_offset + j
-				&& start + len > bh_offset + j) {
-
-				if (isascii(ch) && isprint(ch))
-					sprintf(row_data + j, "%c", ch);
-				else
-					sprintf(row_data + j, ".");
-
-				sprintf(row_hex + (j * 3), "%2.2x ", ch);
-				} else {
-					sprintf(row_data + j, " ");
-					sprintf(row_hex + (j * 3), "-- ");
-				}
-			}
-
-			printk(KERN_ERR "0x%4.4x : %s | %s\n"
-					, bh_offset, row_hex, row_data);
-			bh_offset += 16;
-		}
-		printk(KERN_ERR "---------------------------------------------------\n");
-}
-
-void print_iloc_info(struct super_block *sb, struct ext4_iloc iloc)
-{
-	/* for debugging, woojoong.lee */
-	printk(KERN_ERR "iloc info, offset : %lu,"
-			, iloc.offset);
-	printk(KERN_ERR " group# : %u\n", iloc.block_group);
-	printk(KERN_ERR "sb info, inodes per group : %lu,"
-			, EXT4_SB(sb)->s_inodes_per_group);
-	printk(KERN_ERR " inode size : %d\n"
-			, EXT4_SB(sb)->s_inode_size);
-	print_bh(sb, iloc.bh, 0, EXT4_BLOCK_SIZE(sb));
-	/* end */
-}
-
-/* for debugging */
-void print_bh(struct super_block *sb, struct buffer_head *bh
-				, int start, int len)
-{
-	if (bh) {
-		printk(KERN_ERR " print_bh: bh %p, bh->b_size %u, bh->b_data %p\n",
-			(void *) bh, bh->b_size, (void *) bh->b_data);
-		print_block_data(sb, bh->b_blocknr, bh->b_data, start, len);
-	}
-	else
-		printk(KERN_ERR " print_bh: bh is null!\n");
-}
 
 /*
  * Note: calculating the overhead so we can be compatible with
@@ -4066,15 +3998,8 @@ no_journal:
 	return 0;
 
 cantfind_ext4:
-
-	/* If you wanna use the flag 'MS_SILENT', call */
-	/* 'print_bh' function within below 'if'. */
-	printk(KERN_ERR "printing data of superblock-bh\n");
-	print_bh(sb, bh, 0, EXT4_BLOCK_SIZE(sb));
-
 	if (!silent)
 		ext4_msg(sb, KERN_ERR, "VFS: Can't find ext4 filesystem");
-
 	goto failed_mount;
 
 failed_mount7:
