@@ -68,23 +68,6 @@
 		};
 	};
 
-	i2c@17{
-		cell-index = <17>;
-		compatible = "i2c-gpio";
-		gpios = <&msmgpio 77 0
-			 &msmgpio 78 0
-			>;
-		bcm2079x-i2c@77{
-			compatible = "bcm2079x-i2c";
-			reg = <0x77>;
-			interrupt-parent = <&msmgpio>;
-			interrupts = <59 0>;
-			bcm2079x-i2c,irq-gpio = <&msmgpio 59 0x00>;
-			bcm2079x-i2c,en-gpio = <&pm8941_gpios 13 0x1>;
-			bcm2079x-i2c,wake-gpio = <&msmgpio 61 0x00>;
-		};
-	};
-
 	qcom,mdss_dsi_samsung_octa_1080p_video  {
 		status = "ok";
 	};
