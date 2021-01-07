@@ -82,6 +82,13 @@
 					fsmgr_flags = "wait";
 					status = "ok";
 				};
+				efs {
+					compatible = "android,efs";
+					dev = "/dev/block/platform/msm_sdcc.1/by-name/efs";
+					type = "ext4";
+					mnt_flags = "noatime,nosuid,nodev,noauto_da_alloc,discard,journal_checksum,data=ordered,errors=panic";
+					fsmgr_flags = "wait,check";
+				};
 
 			};
 		};
